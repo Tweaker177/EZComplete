@@ -1,0 +1,9 @@
+Package: com.i0stweak3r.ezcomplete
+Name: EZComplete
+Author: i0s_tweak3r
+Description: A CLI terminal based version of an openai chatbot for jailbroken iOS devices.  It accesses the models directly using Objective C instead of Python or Node, making it kind of a unique package, and an ideal framework for building into a tweak or application once finished. Note:The tool does require python to be installed so it can interact with the API. 
+Depends: firmware (>=8.0)
+Maintainer: i0s_tweak3r <djvs23@gmail.com>
+Architecture: iphoneos-arm
+Section: Utilities
+Version: 0.0.7

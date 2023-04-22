@@ -1,0 +1,9 @@
+Package: com.i0stweak3r.ezcomplete
+Name: EZComplete
+Author: i0s_tweak3r
+Description: Let's chat gpt and DallE Whisper chit up.
+Depends: firmware (>= 8.0)
+Maintainer: i0s_tweak3r <djvs23@gmail.com>
+Architecture: iphoneos-arm
+Section: Utilities
+Version: 0.0.7
