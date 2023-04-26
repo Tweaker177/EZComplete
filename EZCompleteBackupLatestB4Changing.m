@@ -71,29 +71,30 @@ static void getTemperatureString(void) {
    //I created this as a string for debugging purposes, but it could be changed to a float.
 
         NSLog(@"\nHow creatively do you want ur model cooked,(1)rare,(2)medium, or (3)smoking hot? (Anything else=default)\n");
-        
+    //Need to change this to user inputting exact value they want. I noticed the models hallucinate a LOT with higher
+    //temperature values.  For now this works tho with the default settihng being a little creative, the rare and medium
+    //settings more deterministic
         char temp[75];
         scanf("%s", temp);
         temperatureString = [NSString stringWithUTF8String: temp];
         if ([temperatureString  isEqualToString:@"1"]) {
-            temperatureString = @"0.3";
+            temperatureString = @"0.2";
             temperature = 0.3;
             
         }
         else if([temperatureString isEqualToString:@"2"]) {
-            temperatureString = @"1.2";
-            temperature = 1.2;
+            temperatureString = @"1";
+            temperature = 0.8;
             
         }
         else if([temperatureString isEqualToString:@"3"]) {
-            temperatureString  = @"1.5";
-            temperature = 1.5;
+            temperatureString  = @"1.25";
+            temperature = 1.35;
             
         }
      else {
          temperatureString = @"0.9";
          temperature = 0.9;
-         
      }
        // continue;
     Prefs_setObjectForKey(@(temperature), @"temperature");

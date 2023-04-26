@@ -65,41 +65,42 @@ static void getNewModel(void) {
 
 
 static void getTemperatureString(void) {
-   //this function handles the input output for changing the temperature and saves the change
-   //to user defaults  so it will be used in the next session.
-   //tecnically it is saving a string, but it is converted to a float when it is used in the completion request.
-   //I created this as a string for debugging purposes, but it could be changed to a float.
+        //this function handles the input output for changing the temperature and saves the change
+        //to user defaults  so it will be used in the next session.
+        //tecnically it is saving a string, but it is converted to a float when it is used in the completion request.
+        //I created this as a string for debugging purposes, but it could be changed to a float.
 
-        NSLog(@"\nHow creatively do you want ur model cooked,(1)rare,(2)medium, or (3)smoking hot? (Anything else=default)\n");
-        
-        char temp[75];
-        scanf("%s", temp);
-        temperatureString = [NSString stringWithUTF8String: temp];
-        if ([temperatureString  isEqualToString:@"1"]) {
-            temperatureString = @"0.3";
-            temperature = 0.3;
-            
-        }
-        else if([temperatureString isEqualToString:@"2"]) {
-            temperatureString = @"1.2";
-            temperature = 1.2;
-            
-        }
-        else if([temperatureString isEqualToString:@"3"]) {
-            temperatureString  = @"1.5";
-            temperature = 1.5;
-            
-        }
-     else {
-         temperatureString = @"0.9";
-         temperature = 0.9;
-         
+             NSLog(@"\nHow creatively do you want ur model cooked,(1)rare,(2)medium, or (3)smoking hot? (Anything else=default)\n");
+         //Need to change this to user inputting exact value they want. I noticed the models hallucinate a LOT with higher
+         //temperature values.  For now this works tho with the default settihng being a little creative, the rare and medium
+         //settings more deterministic
+             char temp[75];
+             scanf("%s", temp);
+             temperatureString = [NSString stringWithUTF8String: temp];
+             if ([temperatureString  isEqualToString:@"1"]) {
+                 temperatureString = @"0.3";
+                 temperature = 0.3;
+                 
+             }
+             else if([temperatureString isEqualToString:@"2"]) {
+                 temperatureString = @"0.8";
+                 temperature = 0.8;
+                 
+             }
+             else if([temperatureString isEqualToString:@"3"]) {
+                 temperatureString  = @"1.35";
+                 temperature = 1.35;
+                 
+             }
+          else {
+              temperatureString = @"0.9";
+              temperature = 0.9;
+          }
+            // continue;
+         Prefs_setObjectForKey(@(temperature), @"temperature");
+         NSLog(@"\nTemperature has been set to %@", temperatureString);
+       //  return;
      }
-       // continue;
-    Prefs_setObjectForKey(@(temperature), @"temperature");
-    NSLog(@"\nTemperature has been set to %@", temperatureString);
-  //  return;
-}
 
 static void getFrequencyPenalty(void) {
     NSLog(@"\nHow much do you want to penalize repitition?\n Enter a number from 0 to 1: \n");
@@ -128,20 +129,23 @@ int main(int argc, const char * argv[]) {
         static NSString *apiKey = nil;
     
     OpenAIKeyManager *keyManager = [[OpenAIKeyManager alloc] init];
-    
+    //Fetch the key using OpenAIKeyManager class's convenience function, that calls a few other functions to either retrieve key from
+    //User Defaults, then it checks the environment variable, and if not set up the most common reccommended way then it prompts user for key
+    // Only issue is it doens't validate with OpenAI if the key is active, so if a key is saved it assumes it's good and moves on.
     kOPENAI_API_KEY = [keyManager getOpenAI_API_Key];
-NSLog(@"Would you like to set up a new API Key?");
+    //Added this to solve above issue for now, giving option to mention if say you leak your API key on Github sharing your CLI based chat program
+NSLog(@"Would you like to set up a new API Key(@'Y/N?');
     NSFileHandle *console = [NSFileHandle fileHandleWithStandardInput];
     input = [[NSString alloc] initWithData:[[console availableData] mutableCopy] encoding:NSUTF8StringEncoding];
     input = [input stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-    if([input isEqualToString:@"YES"] || [input containsString:@"yes"]) {
+      if(([input isEqualToString:@"YES"] || [input containsString:@"yes"]) || ([input isEqualToString:@"Y"] || [input isEqualToString:@"y"])) {
         kOPENAI_API_KEY = [keyManager promptUserForKey];
         
           }
         
        // OpenAIKeyManager *keyManager = [[OpenAIKeyManager alloc] init];
         
-        kOPENAI_API_KEY = [keyManager getOpenAI_API_Key];
+       // kOPENAI_API_KEY = [keyManager getOpenAI_API_Key];
             
     if([kOPENAI_API_KEY containsString:@"sk"] && kOPENAI_API_KEY.length > 9) {
                 //OPENAI_API_KEY in userdefaults is set or environment worked
@@ -157,14 +161,7 @@ NSLog(@"Would you like to set up a new API Key?");
                 //They should never see this unless they had an issue twice setting it up already in the same session.
             
             kOPENAI_API_KEY = [keyManager getOpenAI_API_Key];
-            /***
-            char userKey[75];
-            scanf("%s", userKey);
-            apiKey  = [NSString stringWithUTF8String:userKey];
-            kOPENAI_API_KEY = apiKey;
-            //Not sure why I created an entire class just to prompt for the key manually lol
-            // Mainly had the manual prompt in case the class didn't work, but it did.
-            ***/
+           
             Prefs_setStringForKey(kOPENAI_API_KEY, @"OPENAI_API_KEY");
             
         }
