@@ -20,7 +20,7 @@ static NSString *kOPENAI_API_KEY = nil;
 static NSString *input = nil;
 
 static NSString *model = @"text-davinci-003";
-Prefs_setObjectForKey(model, @"model");
+//Prefs_setObjectForKey(model, @"model");
 //saving to user defaults with convenience method defined in header file    
 
 static void getNewModel(void) {
@@ -57,7 +57,7 @@ static void getNewModel(void) {
          
      }
        // continue;
-    Prefs_setObjectForKey(model, @"model");
+    Prefs_setStringForKey(model, @"model");
     NSLog(@"\nModel has been set to %@", model);
   //  return;
 }
@@ -127,8 +127,19 @@ int main(int argc, const char * argv[]) {
 {
         static NSString *apiKey = nil;
     
+    OpenAIKeyManager *keyManager = [[OpenAIKeyManager alloc] init];
+    
+    kOPENAI_API_KEY = [keyManager getOpenAI_API_Key];
+NSLog(@"Would you like to set up a new API Key?");
+    NSFileHandle *console = [NSFileHandle fileHandleWithStandardInput];
+    input = [[NSString alloc] initWithData:[[console availableData] mutableCopy] encoding:NSUTF8StringEncoding];
+    input = [input stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if([input isEqualToString:@"YES"] || [input containsString:@"yes"]) {
+        kOPENAI_API_KEY = [keyManager promptUserForKey];
         
-        OpenAIKeyManager *keyManager = [[OpenAIKeyManager alloc] init];
+          }
+        
+       // OpenAIKeyManager *keyManager = [[OpenAIKeyManager alloc] init];
         
         kOPENAI_API_KEY = [keyManager getOpenAI_API_Key];
             
@@ -145,7 +156,7 @@ int main(int argc, const char * argv[]) {
                 //Users should only have to enter their API Key the first time using program, then it will be stored in user defaults.
                 //They should never see this unless they had an issue twice setting it up already in the same session.
             
-            kOpenAI_API_KEY = [keyManager getOpenAI_API_Key];
+            kOPENAI_API_KEY = [keyManager getOpenAI_API_Key];
             /***
             char userKey[75];
             scanf("%s", userKey);
@@ -221,7 +232,7 @@ int main(int argc, const char * argv[]) {
                 /*****************************************************************************************  Custom Model  ******************************/
                 //Output the current model in use, then use the getNewModel function to prompt for a new model  and set it.
                 getNewModel();
-                 
+                model = Prefs_getString(@"model");
                 NSLog(@"\nThe model has been changed to: %@\n",model);
                 input = @"";
                 //So we don't have to go back to the start of the loop, we'll get another input
@@ -347,11 +358,11 @@ int main(int argc, const char * argv[]) {
         
         
         kOPENAI_API_KEY = Prefs_getString(@"OPENAI_API_KEY");
-       // NSLog(@"\nOpenAIKey before startig post = %@\n", kOPENAI_API_KEY);
+       // NSLog(@"\nOpenAIKey before starting post = %@\n", kOPENAI_API_KEY);
         NSURLSession *session = [NSURLSession sharedSession];
             // Send prompt to OpenAI API
         NSString *urlString = [NSString stringWithFormat:@"%@completions", baseUrl];
-            //make sure to check baseUrl compatibility with other models
+            //make sure to check baseUrl compatibility with other models endpoints
         NSURL *url = [NSURL URLWithString:urlString];
         NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
         [request setHTTPMethod:@"POST"];
@@ -364,11 +375,40 @@ int main(int argc, const char * argv[]) {
             @"max_tokens": @2000,    //this model can handle up to like 2000
             @"temperature": @(temperature),  //higher values give more variety default=1
             @"frequency_penalty": @(frequency_penalty),
-            @"presence_penalty": @0.05,
+            @"presence_penalty": @0.0,
             @"n": @1,    //number of completions requested per prompt
             @"stop": @"[D^D^D^D^D]"   //chose this because the model used to crash the terminal with bombs of this sequence
         };
-        NSLog(@"\nParameters have been entered %@ model %@ prompt %f temp %f frequency\n", model, prompt, temperature, frequency_penalty);
+        NSLog(@"\nParameters have been entered model= %@  prompt= %@ temp = %f frequency= %f
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              \\\\\\\n", model, prompt, temperature, frequency_penalty);
         
         NSData *postData = [NSJSONSerialization dataWithJSONObject:parameters options:0 error:nil];
         [request setHTTPBody:postData];
