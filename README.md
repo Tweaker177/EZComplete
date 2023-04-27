@@ -11,6 +11,3 @@ You'll need an OpenAI API key for the requests to be processed.  If you dont hav
 
 Any issues, or suggestions for improvements feel free to open a Pull Request or create an issue..  
 
-This is a preliminary beta that lets you pick a model before each prompt, as well as set temperature/ creativeness, frequency penality, and more, so each prompt can be to the config of your
-choosing amongst the original completion models.   I'm going to add the edits, and chat formats very soon to make 3.5 turbo and 4 available choices.  (They aren't
-compatible with the original completions format, at least according to the docs.)
