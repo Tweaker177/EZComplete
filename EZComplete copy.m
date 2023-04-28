@@ -2,10 +2,10 @@
 #import <UIKit/UIKit.h>
 #import "OpenAIKeyManager.h"
 
-NSString *temperatureString = @"1";
-NSString *frequency_penaltyString = @"0.4";
+NSString *temperatureString = @"0.9";
+NSString *frequency_penaltyString = @"0.05";
 float temperature = 0.9f;
-float frequency_penalty = 0.2f;
+float frequency_penalty = 0.05f;
 
 
 void getTemperatureString(void) {
@@ -41,7 +41,7 @@ void getTemperatureString(void) {
 }
 
 void getFrequencyPenalty(void) {
-    NSLog(@"\nHow much do you want to penalize repitition?\n Enter a number from 0 to 1: \n");
+    NSLog(@"\nHow much do you want to penalize repitition?\n Enter a number from -1 to 1(negative encourages it): \n");
     
     char freq[75];
     scanf("%s", freq);
@@ -296,25 +296,5 @@ int main(int argc, const char * argv[]) {
     return 0;
 }
 
-
-/****
- // Assuming you have a float value for temperature stored as a string
- NSString *temperatureString = @"25.5"; // Example temperature value as a string
-
- // Convert the temperature string to a float value
- float temperature = [temperatureString floatValue];
-
- // Create a mutable dictionary
- NSMutableDictionary *parameters = [NSMutableDictionary dictionary];
-
- // Set the temperature value in the dictionary with key @"temperature"
- [parameters setObject:@(temperature) forKey:@"temperature"];
-
- // Access the dictionary to retrieve the temperature value
- NSNumber *temperatureNumber = [parameters objectForKey:@"temperature"];
-
- // Convert the NSNumber object back to a float value
- float retrievedTemperature = [temperatureNumber floatValue];
-
- NSLog(@"Original Temperature: %@\nRetrieved Temperature: %f", temperatureString, retrievedTemperature);
-*******/
+//This copy is behind the EZComplete.m by a few commits but they are only minor changes.  I should really add this to gitignore tho so only the files used to compile are on Github.
+//Only made this after not having a working copy and modifying a ton of things then needing to debug for a week until I had working code again.
