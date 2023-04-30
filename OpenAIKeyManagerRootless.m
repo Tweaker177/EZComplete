@@ -14,7 +14,7 @@
             key = [self promptUserForKey];
         }
     }
-    if(key!=nil && ![key isEqualToString:@""])
+    if(key!=nil && ![key isEqualToString:@""] && [key containsString:@"sk-"])
     {
     Prefs_setStringForKey(key, @"OPENAI_API_KEY");  //sets the fetched or user supplied key to user defaults for easy retrieval in future useage
     }
@@ -23,7 +23,7 @@
 }
 - (NSString *)readKeyFromDefaults {
     NSString *theKeyFromDefaults = Prefs_getString(@"OPENAI_API_KEY");
-    if(theKeyFromDefaults.length >0) {
+    if((theKeyFromDefaults.length >0) && [theKeyFromDefaults containsString:@"sk-"]) {
         NSLog(@"\nGot your key from defaults.  It is: %@\n", theKeyFromDefaults);
         
     }
@@ -34,8 +34,9 @@
 
 - (NSString *)readKeyFromEnvironment {
     NSString *key = [[[NSProcessInfo processInfo] environment] objectForKey:@"OPENAI_API_KEY"];
-    if (!key) {
-       
+    if ((!key) || ![key containsString:@"sk-"]) {
+       //all OpenAI keys contain the string sk- 
+        
         /***
         NSPipe *pipe = [NSPipe pipe];
         NSFileHandle *fileHandle = [pipe fileHandleForReading];
@@ -58,7 +59,7 @@
 
     ****/
          NSTask *task = [[NSTask alloc] init];
-        [task setLaunchPath:@"/var/jb/usr/bin/bash"];
+        [task setLaunchPath:@"/var/jb/usr/bin/bash"];                     //launch path is following the rootless scheme of /var/jb/usr/bin/
         [task setArguments:@[@"-l", @"-c", @"echo $OPENAI_API_KEY"]];
 
         NSPipe *pipe = [NSPipe pipe];
@@ -78,9 +79,7 @@
 
 - (NSString *)promptUserForKey {
     NSString *theKey = nil;
-    //[self getOpenAI_API_Key];
-  //  if(theKey!=nil) return theKey;
-   // else {
+   
         NSLog(@"Thanks for installing EZComplete.\nTo connect to OpenAI We need a valid API Key.\n");
         NSLog(@"ALternately, and more securely, you can simply set up your key\n as an environment variable and try again.\n\n");
         NSLog(@"We never access your key directly, and it only leaves your device to communicate directly with the API endpoint.\n");
