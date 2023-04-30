@@ -277,7 +277,7 @@ NSLog(@"Would you like to set up a new API Key(@'Y/N?');
             if([input isEqualToString:@"T"]) {
                 NSLog(@"\nThe current temperature setting is: %f", temperature);
                 getTemperatureString();
-                NSLog(@"\nTEMP HAS BEEN SET TO %@ = %f", temperatureString, temperature);
+                NSLog(@"\nTEMP HAS BEEN SET TO %@ = %f", temperature);
                 input = @"";
                 NSLog(@"\n\nType (P) for a prompt, OR type (exit) to quit): \n");
                 console = [NSFileHandle fileHandleWithStandardInput];
@@ -319,11 +319,11 @@ NSLog(@"Would you like to set up a new API Key(@'Y/N?');
     
             
         
-        if ((prompt.length > 0) && (prompt.length <= 3200) && ![prompt isEqualToString:@""])
-        {
+    if ((prompt.length > 0) && (prompt.length <= 3200)) && !([prompt isEqualToString:@""] || [prompt containsString:@"D^D^D^D^"]))
+        {          //D^D^D^D^ is some sort of escape sequence that causes an overflow if enough are repeated fast enough
                 //3200 is arbitrary need to make this customizable
             
-            isValidInput = true;
+            isValidInput = YES;
           //  NSString* boolString = isValidInput ? @"true" : @"false";
            // NSLog(@"\nIs input valid? %@\n prompt: %@", boolString, prompt);
         }
@@ -337,7 +337,7 @@ NSLog(@"Would you like to set up a new API Key(@'Y/N?');
                 NSFileHandle *console = [NSFileHandle fileHandleWithStandardInput];
                 input = [[NSString alloc] initWithData:[[console availableData] mutableCopy] encoding:NSUTF8StringEncoding];
                 prompt = [input stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-                isValidInput = ((0 < prompt.length) && ( prompt.length <= 3250)) ? YES : NO;
+            isValidInput = ((0 < prompt.length) && ![prompt containsString:@"D^D^D^D^"] && (prompt.length <= 3250)) ? YES : NO;
                 if(isValidInput) {
                                      //prompt = input;
                                NSLog(@"Prompt to be sent: %@", prompt);
@@ -374,38 +374,9 @@ NSLog(@"Would you like to set up a new API Key(@'Y/N?');
             @"frequency_penalty": @(frequency_penalty),
             @"presence_penalty": @0.0,
             @"n": @1,    //number of completions requested per prompt
-            @"stop": @"[D^D^D^D^D]"   //chose this because the model used to crash the terminal with bombs of this sequence
+            @"stop": @"D^D^D^D^D"   //chose this because the model used to crash the terminal with bombs of this sequence
         };
-        NSLog(@"\nParameters have been entered model= %@  prompt= %@ temp = %f frequency= %f
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              
-              \\\\\\\n", model, prompt, temperature, frequency_penalty);
+        NSLog(@"\nParameters have been entered model= %@  prompt= %@ temp = %f frequency= %f\n", model, prompt, temperature, frequency_penalty);
         
         NSData *postData = [NSJSONSerialization dataWithJSONObject:parameters options:0 error:nil];
         [request setHTTPBody:postData];
