@@ -1,7 +1,7 @@
 export TARGET = iphone:clang:latest:10.0
 export ARCHS = arm64 arm64e
 DEBUG = 0
-export FINALPACKAGE=0
+export FINALPACKAGE=1
 #CFLAGS = -fobjc-arc  -Wno-error  -Wno-deprecated-declarations
 
 include $(THEOS)/makefiles/common.mk
