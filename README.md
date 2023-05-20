@@ -11,3 +11,8 @@ You'll need an OpenAI API key for the requests to be processed.  If you dont hav
 
 Any issues, or suggestions for improvements feel free to open a Pull Request or create an issue..  
 
+
+Video of package on ios 15.7.4 palwera1n rootless jailbreak.
+https://youtu.be/kUXO9v8uJZc
+
+
