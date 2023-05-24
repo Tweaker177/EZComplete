@@ -134,7 +134,7 @@ int main(int argc, const char * argv[]) {
     // Only issue is it doens't validate with OpenAI if the key is active, so if a key is saved it assumes it's good and moves on.
     kOPENAI_API_KEY = [keyManager getOpenAI_API_Key];
     //Added this to solve above issue for now, giving option to mention if say you leak your API key on Github sharing your CLI based chat program
-NSLog(@"Would you like to set up a new API Key(@'Y/N?');
+NSLog(@"Would you like to set up a new API Key(Y/N)?\n");
     NSFileHandle *console = [NSFileHandle fileHandleWithStandardInput];
     input = [[NSString alloc] initWithData:[[console availableData] mutableCopy] encoding:NSUTF8StringEncoding];
     input = [input stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
@@ -147,7 +147,7 @@ NSLog(@"Would you like to set up a new API Key(@'Y/N?');
         
        // kOPENAI_API_KEY = [keyManager getOpenAI_API_Key];
             
-    if([kOPENAI_API_KEY containsString:@"sk"] && kOPENAI_API_KEY.length > 9) {
+    if([kOPENAI_API_KEY containsString:@"sk-"] && kOPENAI_API_KEY.length > 9) {
                 //OPENAI_API_KEY in userdefaults is set or environment worked
                 //[defaults setObject:apiKey forKey:@"OPENAI_API_KEY"];
             NSLog(@"\nSweet! Found your API Key. We're all set to have some fun.\n");
@@ -155,7 +155,7 @@ NSLog(@"Would you like to set up a new API Key(@'Y/N?');
             
         }
         
-    if(!kOPENAI_API_KEY || ![kOPENAI_API_KEY containsString:@"sk"]) {
+    if(!kOPENAI_API_KEY || ![kOPENAI_API_KEY containsString:@"sk-"]) {
             NSLog(@"Thanks for installing EZComplete.\nTo connect to OpenAI enter your API key: ");
                 //Users should only have to enter their API Key the first time using program, then it will be stored in user defaults.
                 //They should never see this unless they had an issue twice setting it up already in the same session.
