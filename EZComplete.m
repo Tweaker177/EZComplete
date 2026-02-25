@@ -1,177 +1,151 @@
 #import <Foundation/Foundation.h>
-#import <UIKit/UIKit.h>
+#import <AVFoundation/AVFoundation.h>
+#import <spawn.h>
+#import <sys/wait.h>
 #import "OpenAIKeyManager.h"
 
-#pragma mark - Supported Models (Current)
+extern char **environ;
 
-#define GPT4O_MINI @"gpt-4o-mini"
-#define GPT4O      @"gpt-4o"
-#define GPT35      @"gpt-3.5-turbo"
+#define MODEL_GPT4O     @"gpt-4o"
+#define MODEL_GPT4O_MINI @"gpt-4o-mini"
+#define MODEL_GPT5      @"gpt-5"
+#define MODEL_DALLE3    @"dall-e-3"
+#define MODEL_GPT35     @"gpt-3.5-turbo"
 
-static NSString *model = GPT4O_MINI;
-static float temperature = 0.9f;
-static float frequency_penalty = 0.2f;
+static NSString *model = @"gpt-4o-mini";
+static float temperature = 0.7f;
+static NSString *systemMessage = @"You are a helpful assistant.";
 static NSString *kOPENAI_API_KEY = nil;
 
-#pragma mark - Utility
-
-NSString *readLine(void) {
-    NSFileHandle *input = [NSFileHandle fileHandleWithStandardInput];
-    NSData *data = [input availableData];
-    NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-    return [string stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
-}
-
-#pragma mark - Model Selection
-
-static void selectModel(void) {
-    NSLog(@"\nChoose a model:\n(1) gpt-4o-mini (recommended)\n(2) gpt-4o\n(3) gpt-3.5-turbo\n");
-
-    NSString *choice = readLine();
-
-    if ([choice isEqualToString:@"1"]) {
-        model = GPT4O_MINI;
-    } else if ([choice isEqualToString:@"2"]) {
-        model = GPT4O;
-    } else if ([choice isEqualToString:@"3"]) {
-        model = GPT35;
-    } else {
-        model = GPT4O_MINI;
+static NSString* getCleanInput(void) {
+    char buffer[4096];
+    if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+        return [[NSString stringWithUTF8String:buffer] stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
     }
-
-    Prefs_setStringForKey(model, @"model");
-    NSLog(@"\nModel set to: %@\n", model);
+    return nil;
 }
 
-#pragma mark - Temperature
-
-static void configureTemperature(void) {
-    NSLog(@"\nEnter temperature (0.0 - 2.0): ");
-    NSString *input = readLine();
-
-    float tempValue = [input floatValue];
-    if (tempValue >= 0.0 && tempValue <= 2.0) {
-        temperature = tempValue;
+static void processOutput(NSString *text) {
+    if (!text || text.length == 0) return;
+    const char *pbPath = "/var/jb/usr/bin/pbcopy";
+    if (access(pbPath, F_OK) != 0) pbPath = "/usr/bin/pbcopy";
+    FILE *pb = popen(pbPath, "w");
+    if (pb) {
+        const char *rawText = [text UTF8String];
+        fwrite(rawText, 1, strlen(rawText), pb);
+        fflush(pb);
+        pclose(pb);
+        printf("\n[System] Result copied to clipboard.\n");
     }
-
-    Prefs_setObjectForKey(@(temperature), @"temperature");
-    NSLog(@"\nTemperature set to: %.2f\n", temperature);
+    @try {
+        AVSpeechUtterance *u = [AVSpeechUtterance speechUtteranceWithString:text];
+        u.rate = 0.55;
+        static AVSpeechSynthesizer *synth;
+        if (!synth) synth = [[AVSpeechSynthesizer alloc] init];
+        [synth speakUtterance:u];
+    } @catch (NSException *e) {}
+    printf("\n[Assistant]: %s\n", [text UTF8String]);
 }
 
-#pragma mark - Frequency Penalty
-
-static void configureFrequency(void) {
-    NSLog(@"\nEnter frequency penalty (0.0 - 2.0): ");
-    NSString *input = readLine();
-
-    float freqValue = [input floatValue];
-    if (freqValue >= 0.0 && freqValue <= 2.0) {
-        frequency_penalty = freqValue;
+static void saveImageFromURL(NSString *urlString) {
+    printf("\n[System] Downloading image...\n");
+    NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:urlString]];
+    if (data) {
+        NSDateFormatter *df = [[NSDateFormatter alloc] init];
+        [df setDateFormat:@"yyyyMMdd_HHmmss"];
+        NSString *filename = [NSString stringWithFormat:@"DALLE_%@.png", [df stringFromDate:[NSDate date]]];
+        NSString *docDir = (getuid() == 0) ? @"/var/root/Documents" : @"/var/mobile/Documents";
+        NSString *filePath = [docDir stringByAppendingPathComponent:filename];
+        [[NSFileManager defaultManager] createDirectoryAtPath:docDir withIntermediateDirectories:YES attributes:nil error:nil];
+        if ([data writeToFile:filePath atomically:YES]) {
+            printf("[Success] Image saved to: %s\n", [filePath UTF8String]);
+            processOutput(filePath);
+        }
     }
-
-    Prefs_setObjectForKey(@(frequency_penalty), @"frequency_penalty");
-    NSLog(@"\nFrequency penalty set to: %.2f\n", frequency_penalty);
 }
 
-#pragma mark - Main
+static void generateImage(NSString *prompt) {
+    printf("\n[System] Generating DALL-E 3 image...\n");
+    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://api.openai.com/v1/images/generations"]];
+    [req setHTTPMethod:@"POST"];
+    [req addValue:[NSString stringWithFormat:@"Bearer %@", kOPENAI_API_KEY] forHTTPHeaderField:@"Authorization"];
+    [req addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    NSDictionary *body = @{@"model": @"dall-e-3", @"prompt": prompt, @"n": @1, @"size": @"1024x1024"};
+    [req setHTTPBody:[NSJSONSerialization dataWithJSONObject:body options:0 error:nil]];
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+    [[[NSURLSession sharedSession] dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *res, NSError *err) {
+        if (data) {
+            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+            @try { saveImageFromURL(json[@"data"][0][@"url"]); } @catch (NSException *e) { printf("\n[Error] Image failed.\n"); }
+        }
+        dispatch_semaphore_signal(sema);
+    }] resume];
+    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+}
+
+static void generateChat(NSString *prompt) {
+    NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"https://api.openai.com/v1/chat/completions"]];
+    [req setHTTPMethod:@"POST"];
+    [req addValue:[NSString stringWithFormat:@"Bearer %@", kOPENAI_API_KEY] forHTTPHeaderField:@"Authorization"];
+    [req addValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
+    NSDictionary *body = @{@"model": model, @"messages": @[@{@"role": @"system", @"content": systemMessage}, @{@"role": @"user", @"content": prompt}], @"temperature": @(temperature)};
+    [req setHTTPBody:[NSJSONSerialization dataWithJSONObject:body options:0 error:nil]];
+    dispatch_semaphore_t sema = dispatch_semaphore_create(0);
+    [[[NSURLSession sharedSession] dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *res, NSError *err) {
+        if (data) {
+            NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
+            @try { processOutput(json[@"choices"][0][@"message"][@"content"]); } @catch (NSException *e) { printf("\n[Error] Chat failed.\n"); }
+        }
+        dispatch_semaphore_signal(sema);
+    }] resume];
+    dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+}
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
-
-        OpenAIKeyManager *keyManager = [[OpenAIKeyManager alloc] init];
-        kOPENAI_API_KEY = [keyManager getOpenAI_API_Key];
-
-        if (!kOPENAI_API_KEY || ![kOPENAI_API_KEY containsString:@"sk-"]) {
-            NSLog(@"Enter your OpenAI API key:");
-            kOPENAI_API_KEY = [keyManager promptUserForKey];
-            Prefs_setStringForKey(kOPENAI_API_KEY, @"OPENAI_API_KEY");
-        }
-
-        NSLog(@"\nAPI Key Loaded. Starting CLI Chat.\n");
-
+        OpenAIKeyManager *km = [OpenAIKeyManager new];
+        kOPENAI_API_KEY = [km getOpenAI_API_Key];
+        if (Prefs_getString(@"model")) model = Prefs_getString(@"model");
+        if (Prefs_getString(@"system_message")) systemMessage = Prefs_getString(@"system_message");
+        if (Prefs_objectForKey(@"temperature")) temperature = [Prefs_objectForKey(@"temperature") floatValue];
+        
         while (YES) {
-
-            NSLog(@"\nOptions: (P)rompt  (M)odel  (T)emperature  (F)requency  (exit)\n");
-            NSString *command = readLine();
-
-            if ([command isEqualToString:@"exit"]) break;
-
-            if ([command.lowercaseString isEqualToString:@"m"]) {
-                selectModel();
-                continue;
-            }
-
-            if ([command.lowercaseString isEqualToString:@"t"]) {
-                configureTemperature();
-                continue;
-            }
-
-            if ([command.lowercaseString isEqualToString:@"f"]) {
-                configureFrequency();
-                continue;
-            }
-
-            if (![command.lowercaseString isEqualToString:@"p"]) continue;
-
-            NSLog(@"\nEnter prompt:");
-            NSString *prompt = readLine();
-            if ([prompt isEqualToString:@"exit"]) break;
-            if (prompt.length == 0) continue;
-
-            NSURL *url = [NSURL URLWithString:@"https://api.openai.com/v1/chat/completions"];
-            NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
-            [request setHTTPMethod:@"POST"];
-            [request addValue:[NSString stringWithFormat:@"Bearer %@", kOPENAI_API_KEY]
-           forHTTPHeaderField:@"Authorization"];
-            [request addValue:@"application/json"
-           forHTTPHeaderField:@"Content-Type"];
-
-            NSDictionary *parameters = @{
-                @"model": model,
-                @"messages": @[
-                        @{@"role": @"user",
-                          @"content": prompt}
-                ],
-                @"temperature": @(temperature),
-                @"frequency_penalty": @(frequency_penalty),
-                @"max_tokens": @2048
-            };
-
-            NSData *postData = [NSJSONSerialization dataWithJSONObject:parameters options:0 error:nil];
-            [request setHTTPBody:postData];
-
-            dispatch_semaphore_t sem = dispatch_semaphore_create(0);
-
-            NSURLSessionDataTask *task =
-            [[NSURLSession sharedSession] dataTaskWithRequest:request
-                                            completionHandler:^(NSData *data,
-                                                                NSURLResponse *response,
-                                                                NSError *error) {
-
-                if (error) {
-                    NSLog(@"Error: %@", error.localizedDescription);
-                } else {
-                    NSDictionary *json =
-                    [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-
-                    NSArray *choices = json[@"choices"];
-                    if (choices.count > 0) {
-                        NSString *reply =
-                        choices[0][@"message"][@"content"];
-                        NSLog(@"\n%@", reply);
-                    } else {
-                        NSLog(@"No response.");
-                    }
+            printf("\n--- EZComplete (V3.9) ---\nModel: %s | Temp: %.2f\n[P] Prompt | [M] Model | [T] Temp | [C] Context | [Exit]\n> ", [model UTF8String], temperature);
+            fflush(stdout);
+            NSString *input = getCleanInput();
+            if (!input || [[input uppercaseString] isEqualToString:@"EXIT"]) break;
+            
+            if ([[input uppercaseString] isEqualToString:@"M"]) {
+                printf("1. GPT-4o | 2. GPT-4o-Mini | 3. GPT-5 | 4. DALL-E 3 | 5. GPT-3.5-Turbo\n> ");
+                fflush(stdout);
+                int choice = [(getCleanInput() ?: @"0") intValue];
+                if (choice == 1) model = MODEL_GPT4O;
+                else if (choice == 2) model = MODEL_GPT4O_MINI;
+                else if (choice == 3) model = MODEL_GPT5;
+                else if (choice == 4) model = MODEL_DALLE3;
+                else if (choice == 5) model = MODEL_GPT35;
+                Prefs_setStringForKey(model, @"model");
+            } else if ([[input uppercaseString] isEqualToString:@"T"]) {
+                printf("Temp (0.0-2.0): ");
+                fflush(stdout);
+                NSString *tIn = getCleanInput(); // FIXED: Proper declaration
+                temperature = [(tIn ?: @"0.7") floatValue];
+                Prefs_setObjectForKey(@(temperature), @"temperature");
+            } else if ([[input uppercaseString] isEqualToString:@"C"]) {
+                printf("Context: ");
+                fflush(stdout);
+                NSString *newC = getCleanInput();
+                if (newC.length > 0) { systemMessage = [newC copy]; Prefs_setStringForKey(systemMessage, @"system_message"); }
+            } else if ([[input uppercaseString] isEqualToString:@"P"]) {
+                printf("Prompt: ");
+                fflush(stdout);
+                NSString *p = getCleanInput();
+                if (p.length > 0) {
+                    if ([model isEqualToString:MODEL_DALLE3]) generateImage(p);
+                    else generateChat(p);
                 }
-
-                dispatch_semaphore_signal(sem);
-            }];
-
-            [task resume];
-            dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);
+            }
         }
     }
-
     return 0;
 }
-
