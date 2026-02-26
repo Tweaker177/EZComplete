@@ -3,14 +3,13 @@ A working, highly customizable GPT client for use on any command line interface.
 
 Models include GPT4, GPT4o Mini, GPT 5, Dalle 3, and GPT 3.5.   It works on rootless jailbroken iOS devices from iOS 15+.
 
-I'm currently using the AVFoundation framework for Text to Speech completions, with a default voice, nothing fancy.  I'll soon be using a higher quality API, but for now Apple works, and its free.  I have packages built and installed on various iOS devices and jailbreaks, but the most recent code chamges have been to the rootless iOS builds. As there is a decent amount of code that's different on Mac, including the makefile, I'm thinking of adding a separate repo just for the Mac / OSX version. 
+I'm currently using the AVFoundation framework for Text to Speech completions, with a default voice, nothing fancy.  I'll soon be using a higher quality API, but for now Apple works, and its free. 
 
-
-Oh yeah, this is written entirely in Objective C++, no python, no node.js, that would be too easy, they have libraries with convenience functions.
+Oh yeah, this is written entirely in Objective C++, no python, no node.js, no convenience functions.
 
 Recently added support for image generation as well. When picking your model you can select "DALLE 3" and enter image prompts like any other prompt.  Once the image is generated and downloaded it is saved automatically to the Documents folder.
 
-You'll need an OpenAI API key for the requests to be processed.  If you dont have one you can get one at https://beta.openai.com
+You'll need an OpenAI API key for the requests to be processed.  If you dont have one you can get one at https://platform.openai.com
 
 Any issues, or suggestions for improvements feel free to open a Pull Request or create an issue..  
 

@@ -1,16 +1,21 @@
-  export TARGET = iphone:clang:latest:10.0
-export ARCHS = arm64 arm64e
+ export THEOS_PACKAGE_SCHEME = rootless
+TARGET = iphone:clang:latest:15.0 # Rootless usually targets 15.0+
+ARCHS = arm64 arm64e
 DEBUG = 0
-export FINALPACKAGE=1
-#CFLAGS = -fobjc-arc  -Wno-error  -Wno-deprecated-declarations
+FINALPACKAGE = 1
 
 include $(THEOS)/makefiles/common.mk
 
 TOOL_NAME = EZComplete
 EZComplete_FILES = OpenAIKeyManager.m EZComplete.m
-EZComplete_FRAMEWORKS = UIKit Foundation
-EZComplete_CFLAGS += -fobjc-arc  -Wno-error -Wno-deprecated-declarations -Wno-error=unguarded-availability
-EZComplete_CODESIGN_FLAGS += -Sent.plist -Icom.i0stweak3r.ezcomplete
+EZComplete_FRAMEWORKS = UIKit Foundation AVFoundation
+# Added AVFoundation above for the speech logic
+
+EZComplete_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-error=unguarded-availability
+EZComplete_CODESIGN_FLAGS = -Sent.plist -Icom.i0stweak3r.ezcomplete
 
 include $(THEOS_MAKE_PATH)/tool.mk
-include $(THEOS_MAKE_PATH)/aggregate.mk
+
+# No need to kill SpringBoard for a terminal tool
+after-install::
+	@echo "EZComplete installed to /var/jb/usr/bin/EZComplete"
